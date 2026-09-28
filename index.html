@@ -1,221 +1,2018 @@
-let current = "home";
-let blockIndex = 0;
-let activeInteraction = null;
-let choiceMode = false;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-function currentMoodKey() {
-  if (activeInteraction?.mood) return activeInteraction.mood;
-  return SCENES[current]?.mood || current;
+<title>Reminisce Once Again</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-function applyMood(sceneOrMood) {
-  const mood = MOODS[sceneOrMood] || MOODS.home;
-
-  document.body.style.background = mood.background;
-  document.documentElement.style.setProperty("--mood", mood.tint);
-
-  if (soundOn) startMusic(mood.music);
+body {
+    font-family: Georgia, "Times New Roman", serif;
+    background: #10131a;
+    color: #eee;
+    overflow: hidden;
+    height: 100vh;
 }
 
-function renderLines(lines) {
-  return lines.map(line =>
-    line === ""
-      ? `<div class="sp"></div>`
-      : `<p>${line}</p>`
-  ).join("");
+/* =========================
+   BACKGROUND
+========================= */
+
+#background {
+    position: fixed;
+    inset: 0;
+    z-index: -5;
+
+    transition: background 2s ease;
+
+    background:
+        linear-gradient(
+            to bottom,
+            #657b91 0%,
+            #9ba8b3 45%,
+            #d0c8ba 100%
+        );
 }
 
-function renderBlock() {
-  choiceMode = false;
+#sun {
+    position: absolute;
 
-  const scene = SCENES[current];
-  const blocks = activeInteraction?.blocks || scene.blocks;
-  const block = blocks[blockIndex];
+    width: 130px;
+    height: 130px;
 
-  stage.className = "continue-mode";
+    border-radius: 50%;
 
-  let html = scene.title ? `<h2>${scene.title}</h2>` : "";
-  html += `<div class="poem-block">${renderLines(block)}</div>`;
+    background:
+        rgba(255, 220, 150, 0.75);
 
-  const isLastBlock = blockIndex === blocks.length - 1;
+    top: 12%;
+    right: 15%;
 
-  if (!isLastBlock) {
-    html += `<div class="continue">Press anywhere to continue</div>`;
-  } else if (activeInteraction) {
-    html += `<div class="choice-area">
-      <button class="rv" data-action="finish-interaction">continue</button>
-    </div>`;
-  } else if (scene.interaction) {
-    html += `<div class="choice-area">
-      <button class="rv" data-action="interaction">${scene.interaction.label}</button>
-    </div>`;
-  } else if (scene.choices) {
-    html += `<div class="choice-area">
-      <button class="rv" data-action="show-choices">continue</button>
-    </div>`;
-  } else if (scene.next) {
-    html += `<div class="choice-area">
-      <button class="rv" data-action="next">continue</button>
-    </div>`;
-  } else if (scene.restart) {
-    html += `<div class="choice-area">
-      <button class="rv" data-action="restart">begin again</button>
-    </div>`;
-  }
+    filter: blur(2px);
 
-  stage.innerHTML = html;
-  stage.scrollTop = 0;
-
-  if (soundOn) {
-    const sound = activeInteraction?.sfx || scene.sfx;
-    if (sound && blockIndex === 0) playSFX(sound);
-
-    if (scene.wind || activeInteraction?.wind) startWind();
-    else stopWind();
-  }
+    transition: all 2s ease;
 }
 
-function renderChoices() {
-  choiceMode = true;
-  stage.className = "";
+.cloud {
+    position: absolute;
 
-  const scene = SCENES[current];
-  const choices = scene.choices || [];
+    background:
+        rgba(255,255,255,0.18);
 
-  let html = scene.title ? `<h2>${scene.title}</h2>` : "";
-  html += `<div class="poem-block"><p>Choose what to remember.</p></div>`;
-  html += `<div class="choice-area">`;
+    border-radius: 100px;
 
-  html += choices.map((choice, index) => `
-    <button class="frag" data-choice="${index}">${choice.label}</button>
-  `).join("");
-
-  html += `</div>`;
-  stage.innerHTML = html;
+    filter: blur(5px);
 }
 
-function openScene(id) {
-  current = id;
-  blockIndex = 0;
-  activeInteraction = null;
+.cloud.one {
+    width: 250px;
+    height: 65px;
 
-  applyMood(SCENES[id].mood || id);
-  renderBlock();
+    top: 22%;
+    left: 5%;
 }
 
-function openInteraction() {
-  activeInteraction = SCENES[current].interaction;
-  blockIndex = 0;
+.cloud.two {
+    width: 330px;
+    height: 80px;
 
-  applyMood(currentMoodKey());
-  renderBlock();
+    top: 32%;
+    right: 8%;
 }
 
-function nextScene() {
-  const next = SCENES[current].next;
-  if (next) openScene(next);
+.cloud.three {
+    width: 200px;
+    height: 55px;
+
+    top: 50%;
+    left: 25%;
 }
 
-function restart() {
-  current = "home";
-  blockIndex = 0;
-  activeInteraction = null;
-
-  applyMood("home");
-  renderBlock();
+#background.morning {
+    background:
+        linear-gradient(
+            to bottom,
+            #6f8799,
+            #a9b6bc,
+            #d8cfbd
+        );
 }
 
-function transitionRender(fn) {
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    fn();
-    return;
-  }
-
-  stage.classList.add("out-f");
-
-  setTimeout(() => {
-    fn();
-    stage.classList.remove("out-f");
-    stage.classList.add("in-f");
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => stage.classList.remove("in-f"));
-    });
-  }, 450);
+#background.memory {
+    background:
+        linear-gradient(
+            to bottom,
+            #65768a,
+            #8e9aa5,
+            #c0b9ac
+        );
 }
 
-stage.addEventListener("click", event => {
-  const button = event.target.closest("button");
+#background.darker {
+    background:
+        linear-gradient(
+            to bottom,
+            #3c4654,
+            #59616b,
+            #797872
+        );
+}
 
-  if (button) {
-    event.stopPropagation();
+#background.final {
+    background:
+        linear-gradient(
+            to bottom,
+            #202631,
+            #303844,
+            #4a4b4c
+        );
+}
 
-    if (button.dataset.action === "scene") {
-      transitionRender(() => openScene(button.dataset.scene));
-      return;
+
+/* =========================
+   MAIN
+========================= */
+
+#app {
+    width: 100%;
+    height: 100vh;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 30px;
+}
+
+#story {
+    width: min(850px, 92vw);
+    max-height: 85vh;
+
+    overflow-y: auto;
+
+    text-align: center;
+
+    padding: 50px 35px;
+
+    background:
+        rgba(10, 13, 18, 0.30);
+
+    backdrop-filter: blur(5px);
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 20px 60px rgba(0,0,0,0.25),
+        inset 0 0 40px rgba(255,255,255,0.02);
+
+    opacity: 1;
+
+    transform:
+        translateY(0);
+
+    transition:
+        opacity 0.8s ease,
+        transform 0.8s ease;
+}
+
+#story.fade-out {
+    opacity: 0;
+
+    transform:
+        translateY(15px);
+}
+
+#story::-webkit-scrollbar {
+    width: 5px;
+}
+
+#story::-webkit-scrollbar-thumb {
+    background:
+        rgba(255,255,255,0.2);
+
+    border-radius: 10px;
+}
+
+
+/* =========================
+   TEXT
+========================= */
+
+.scene-title {
+    font-size:
+        clamp(28px, 5vw, 48px);
+
+    letter-spacing: 5px;
+
+    text-transform: uppercase;
+
+    margin-bottom: 35px;
+
+    font-weight: normal;
+}
+
+.poem {
+    font-size:
+        clamp(18px, 2.3vw, 24px);
+
+    line-height: 1.9;
+
+    white-space: pre-line;
+
+    color:
+        rgba(255,255,255,0.92);
+}
+
+.poem-line {
+    opacity: 0;
+
+    transform:
+        translateY(10px);
+
+    animation:
+        reveal 1.1s forwards;
+}
+
+@keyframes reveal {
+
+    to {
+        opacity: 1;
+
+        transform:
+            translateY(0);
     }
 
-    if (button.dataset.action === "interaction") {
-      transitionRender(openInteraction);
-      return;
+}
+
+
+/* =========================
+   CONTINUE BUTTON
+========================= */
+
+#continue {
+    margin-top: 45px;
+
+    padding:
+        14px 25px;
+
+    border:
+        1px solid rgba(255,255,255,0.35);
+
+    border-radius: 30px;
+
+    background:
+        rgba(255,255,255,0.06);
+
+    color:
+        rgba(255,255,255,0.75);
+
+    font-family:
+        Georgia, serif;
+
+    font-size: 15px;
+
+    letter-spacing: 2px;
+
+    cursor: pointer;
+
+    opacity: 0;
+
+    animation:
+        continueAppear 1.5s forwards;
+
+    animation-delay:
+        0.8s;
+
+    transition:
+        background 0.3s ease,
+        transform 0.3s ease;
+}
+
+#continue:hover {
+
+    background:
+        rgba(255,255,255,0.14);
+
+    transform:
+        translateY(-2px);
+}
+
+@keyframes continueAppear {
+
+    to {
+        opacity: 1;
     }
 
-    if (button.dataset.action === "finish-interaction") {
-      activeInteraction = null;
-      blockIndex = 0;
+}
 
-      if (SCENES[current].next) {
-        transitionRender(nextScene);
-      } else {
-        transitionRender(renderBlock);
-      }
-      return;
+
+/* =========================
+   INTERACTIONS
+========================= */
+
+.interaction {
+    margin-top: 35px;
+}
+
+.interaction button {
+
+    border:
+        1px solid rgba(255,255,255,0.4);
+
+    background:
+        rgba(0,0,0,0.18);
+
+    color:
+        white;
+
+    padding:
+        12px 22px;
+
+    border-radius:
+        25px;
+
+    font-family:
+        Georgia, serif;
+
+    font-size:
+        16px;
+
+    cursor:
+        pointer;
+
+    transition:
+        all 0.3s ease;
+}
+
+.interaction button:hover {
+
+    background:
+        rgba(255,255,255,0.12);
+
+    transform:
+        translateY(-2px);
+}
+
+.interaction-result {
+
+    margin-top: 25px;
+
+    font-size: 20px;
+
+    line-height: 1.8;
+
+    white-space: pre-line;
+
+    animation:
+        reveal 1s forwards;
+}
+
+
+/* =========================
+   SHOE
+========================= */
+
+.shoe {
+
+    margin:
+        30px auto;
+
+    width:
+        100px;
+
+    height:
+        50px;
+
+    border-radius:
+        60% 40% 30% 20%;
+
+    background:
+        rgba(20,20,20,0.75);
+
+    transform:
+        rotate(-8deg);
+
+    box-shadow:
+        0 10px 20px rgba(0,0,0,0.3);
+
+    cursor:
+        pointer;
+
+    transition:
+        transform 0.4s ease;
+}
+
+.shoe:hover {
+
+    transform:
+        rotate(-8deg) scale(1.05);
+}
+
+
+/* =========================
+   CLOCK
+========================= */
+
+.clock {
+
+    font-size:
+        clamp(55px, 12vw, 100px);
+
+    letter-spacing:
+        8px;
+
+    margin:
+        20px 0 30px;
+
+    font-family:
+        "Courier New", monospace;
+
+    text-shadow:
+        0 0 20px rgba(255,255,255,0.15);
+}
+
+
+/* =========================
+   FINAL
+========================= */
+
+.end-text {
+
+    font-size:
+        clamp(20px, 3vw, 28px);
+
+    line-height:
+        1.9;
+}
+
+.small-text {
+
+    margin-top:
+        30px;
+
+    color:
+        rgba(255,255,255,0.5);
+
+    font-size:
+        13px;
+
+    letter-spacing:
+        2px;
+}
+
+
+/* =========================
+   SOUND BUTTON
+========================= */
+
+#soundToggle {
+
+    position:
+        fixed;
+
+    top:
+        20px;
+
+    right:
+        20px;
+
+    z-index:
+        20;
+
+    width:
+        45px;
+
+    height:
+        45px;
+
+    border-radius:
+        50%;
+
+    border:
+        1px solid rgba(255,255,255,0.3);
+
+    background:
+        rgba(0,0,0,0.25);
+
+    color:
+        white;
+
+    cursor:
+        pointer;
+
+    font-size:
+        18px;
+}
+
+
+/* =========================
+   FADE
+========================= */
+
+#fade {
+
+    position:
+        fixed;
+
+    inset:
+        0;
+
+    background:
+        #05070a;
+
+    pointer-events:
+        none;
+
+    opacity:
+        0;
+
+    z-index:
+        50;
+
+    transition:
+        opacity 0.8s ease;
+}
+
+#fade.active {
+    opacity: 1;
+}
+
+</style>
+</head>
+
+
+<body>
+
+
+<div id="background">
+
+    <div id="sun"></div>
+
+    <div class="cloud one"></div>
+
+    <div class="cloud two"></div>
+
+    <div class="cloud three"></div>
+
+</div>
+
+
+<div id="fade"></div>
+
+
+<button
+    id="soundToggle"
+    onclick="toggleSound()"
+>
+    🔊
+</button>
+
+
+<div id="app">
+
+    <main id="story"></main>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   SOUND SYSTEM
+========================================================= */
+
+let soundEnabled = true;
+
+let audioContext = null;
+
+
+/* =========================
+   START AUDIO
+========================= */
+
+function startAudio() {
+
+    if (!audioContext) {
+
+        audioContext =
+            new (
+                window.AudioContext ||
+                window.webkitAudioContext
+            )();
     }
 
-    if (button.dataset.action === "show-choices") {
-      transitionRender(renderChoices);
-      return;
+    if (
+        audioContext.state ===
+        "suspended"
+    ) {
+
+        audioContext.resume();
+    }
+}
+
+
+/* =========================
+   SOUND TOGGLE
+========================= */
+
+function toggleSound() {
+
+    soundEnabled =
+        !soundEnabled;
+
+    document
+        .getElementById("soundToggle")
+        .textContent =
+        soundEnabled
+            ? "🔊"
+            : "🔇";
+
+    if (soundEnabled) {
+
+        startAudio();
+    }
+}
+
+
+/* =========================================================
+   UNIVERSAL CONTINUE SOUND
+========================================================= */
+
+/*
+    THIS IS THE IMPORTANT PART.
+
+    EVERY "PRESS ANYWHERE TO CONTINUE"
+    USES THIS SAME SOUND.
+
+    The sound is the clock tick.
+
+    It does NOT play automatically.
+*/
+
+function playContinueSound() {
+
+    if (!soundEnabled) return;
+
+    playClock();
+}
+
+
+/* =========================
+   CLOCK SFX
+========================= */
+
+function playClock() {
+
+    if (!soundEnabled) return;
+
+    startAudio();
+
+
+    const oscillator =
+        audioContext.createOscillator();
+
+    const gain =
+        audioContext.createGain();
+
+
+    oscillator.type =
+        "square";
+
+
+    oscillator.frequency.value =
+        900;
+
+
+    gain.gain.setValueAtTime(
+        0.025,
+        audioContext.currentTime
+    );
+
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.001,
+        audioContext.currentTime + 0.08
+    );
+
+
+    oscillator.connect(gain);
+
+    gain.connect(
+        audioContext.destination
+    );
+
+
+    oscillator.start();
+
+
+    oscillator.stop(
+        audioContext.currentTime + 0.08
+    );
+}
+
+
+/* =========================================================
+   WIND SFX
+========================================================= */
+
+function playWind() {
+
+    if (!soundEnabled) return;
+
+    startAudio();
+
+
+    const duration = 1.5;
+
+
+    const buffer =
+        audioContext.createBuffer(
+            1,
+            audioContext.sampleRate *
+                duration,
+            audioContext.sampleRate
+        );
+
+
+    const data =
+        buffer.getChannelData(0);
+
+
+    for (
+        let i = 0;
+        i < data.length;
+        i++
+    ) {
+
+        data[i] =
+            (Math.random() * 2 - 1)
+            * 0.12;
     }
 
-    if (button.dataset.action === "next") {
-      transitionRender(nextScene);
-      return;
+
+    const source =
+        audioContext
+            .createBufferSource();
+
+
+    const filter =
+        audioContext
+            .createBiquadFilter();
+
+
+    const gain =
+        audioContext
+            .createGain();
+
+
+    filter.type =
+        "lowpass";
+
+    filter.frequency.value =
+        900;
+
+    gain.gain.value =
+        0.12;
+
+
+    source.buffer =
+        buffer;
+
+
+    source.connect(filter);
+
+    filter.connect(gain);
+
+    gain.connect(
+        audioContext.destination
+    );
+
+
+    source.start();
+
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.001,
+        audioContext.currentTime + duration
+    );
+}
+
+
+/* =========================================================
+   VOICE STATIC
+========================================================= */
+
+function playStatic() {
+
+    if (!soundEnabled) return;
+
+    startAudio();
+
+
+    const duration = 1.2;
+
+
+    const buffer =
+        audioContext.createBuffer(
+            1,
+            audioContext.sampleRate *
+                duration,
+            audioContext.sampleRate
+        );
+
+
+    const data =
+        buffer.getChannelData(0);
+
+
+    for (
+        let i = 0;
+        i < data.length;
+        i++
+    ) {
+
+        data[i] =
+            (Math.random() * 2 - 1)
+            * 0.18;
     }
 
-    if (button.dataset.action === "restart") {
-      transitionRender(restart);
-      return;
+
+    const source =
+        audioContext
+            .createBufferSource();
+
+
+    const gain =
+        audioContext
+            .createGain();
+
+
+    gain.gain.value =
+        0.08;
+
+
+    source.buffer =
+        buffer;
+
+
+    source.connect(gain);
+
+    gain.connect(
+        audioContext.destination
+    );
+
+
+    source.start();
+}
+
+
+/* =========================================================
+   STORY
+========================================================= */
+
+const scenes = {
+
+
+/* =========================================================
+   OPENING
+========================================================= */
+
+home: {
+
+    mood:
+        "morning",
+
+    title:
+        "",
+
+    blocks: [
+
+        `The clock ticks,
+As I talk.
+The sky shifts,
+And I carry on.`,
+
+        `But still, sometimes,
+Something lingers
+At the bottom of my heart.`,
+
+        `It feels unexplainable,
+Perhaps it is the longing
+For someone I once had.`,
+
+        `One nostalgic afternoon,
+As I sit and stare
+At a distance still hanging in the air,
+I cannot help but wonder,`,
+
+        `“What could have happened
+If you were still by our side?”`
+
+    ],
+
+    next:
+        "photo"
+},
+
+
+/* =========================================================
+   PHOTO
+========================================================= */
+
+photo: {
+
+    mood:
+        "memory",
+
+    title:
+        "The Photo",
+
+    blocks: [
+
+        `I glanced at the book on the table,
+Filled with photographs
+That captured moments in time.`,
+
+        `Sweet moments,
+At least, that is how I remember them.`,
+
+        `A photograph fell
+From the book in my hands.`,
+
+        `I picked it up and stared.`,
+
+        `There were five people
+In the photograph.`,
+
+        `I remember four names.`,
+
+        `The fifth person
+Was blurred,
+
+physically,
+
+yet sharply defined
+In the photograph
+And in our minds.`,
+
+        `As a cold breeze passed through,
+The chimes sang a quiet song.
+
+It felt nostalgic.`
+
+    ],
+
+    next:
+        "door"
+},
+
+
+/* =========================================================
+   DOOR
+========================================================= */
+
+door: {
+
+    mood:
+        "darker",
+
+    title:
+        "The Door",
+
+    blocks: [
+
+        `Page after page,
+I reached the end
+And closed the book.`,
+
+        `I stood up.`,
+
+        `Then I stopped by the door.`,
+
+        `It was open.`,
+
+        `I remember this clearly.
+
+Or perhaps
+I remember it because
+The other photograph shows it open.`,
+
+        `The hallway beyond it
+Was darker than I remembered.`,
+
+        `There was a shoe
+Beside the doorway.
+
+One shoe.`
+
+    ],
+
+    interaction:
+        "shoe",
+
+    next:
+        "voice"
+},
+
+
+/* =========================================================
+   VOICE
+========================================================= */
+
+voice: {
+
+    mood:
+        "darker",
+
+    title:
+        "The Voice",
+
+    blocks: [
+
+        `“Wait.”`,
+
+        `Three words.`,
+
+        `That is all I remember.`,
+
+        `Maybe there were more.`,
+
+        `Maybe my mind
+Cut the rest away.`,
+
+        `The voice sounded familiar.
+
+A friend?
+A stranger?
+A parent?`
+
+    ],
+
+    interaction:
+        "voice",
+
+    next:
+        "clock"
+},
+
+
+/* =========================================================
+   CLOCK
+========================================================= */
+
+clock: {
+
+    mood:
+        "darker",
+
+    title:
+        "The Clock",
+
+    blocks: [
+
+        `7:51`,
+
+        `I was worried.
+
+Mom was worried sick
+And kept calling.
+
+My siblings were worried too.
+They kept calling.`,
+
+        `I could not comprehend
+What was happening at the time.`,
+
+        `7:51 was when I messaged you,
+Asking why you were not answering Mom’s calls.`,
+
+        `I called.
+
+The phone was answered moments later.`,
+
+        `That was when she knew the truth.`,
+
+        `7:51 was when the house
+Was filled with tears.`,
+
+        `A single minute
+Had never felt so long.`
+
+    ],
+
+    interaction:
+        "clock",
+
+    next:
+        "memory"
+},
+
+
+/* =========================================================
+   REMINISCING
+========================================================= */
+
+memory: {
+
+    mood:
+        "memory",
+
+    title:
+        "Reminiscing",
+
+    blocks: [
+
+        `I find reminiscing
+To be a double-edged sword.`,
+
+        `Good memories remain.
+
+Bad memories linger.`,
+
+        `A sound snapped me back to reality.
+
+Or was it the door?
+
+Or the voice?`,
+
+        `But memories
+Do not always keep time.`,
+
+        `SOUND
+
+Wind chimes.`,
+
+        `DOOR
+
+Left open.`,
+
+        `VOICE
+
+“Wait.”`,
+
+        `CLOCK
+
+7:51`,
+
+        `PHOTO
+
+Five people.
+One blurred.`,
+
+        `7:51.
+
+The door was open.
+
+The voice said, “Wait.”
+
+There were five people.
+
+One of them
+Never appeared again.`
+
+    ],
+
+    next:
+        "last"
+},
+
+
+/* =========================================================
+   TRIP DOWN MEMORY LANE
+========================================================= */
+
+last: {
+
+    mood:
+        "final",
+
+    title:
+        "Trip Down Memory Lane",
+
+    blocks: [
+
+        `I remember it all now.
+
+Vividly.
+
+Not everything.
+
+Only enough.`,
+
+        `The photograph was taken
+Years ago,
+When everything was still innocent.`,
+
+        `The clock moved forward
+As it happened.`,
+
+        `The door opened
+Afterward.`,
+
+        `And the voice...`,
+
+        `The voice belonged to me.`,
+
+        `Because I was the one
+Who said,
+
+“Wait.”`,
+
+        `I was trying
+To stop someone
+From going away
+Forever.`
+
+    ],
+
+    next:
+        "final"
+},
+
+
+/* =========================================================
+   FINAL
+========================================================= */
+
+final: {
+
+    mood:
+        "final",
+
+    title:
+        "",
+
+    blocks: [
+
+        `Some memories disappear
+Because time takes them.`,
+
+        `Others disappear
+Because of painful events.`,
+
+        `But forgotten
+Does not mean gone.`,
+
+        `7:51`
+
+    ],
+
+    interaction:
+        "final",
+
+    next:
+        "restart"
+},
+
+
+/* =========================================================
+   RESTART
+========================================================= */
+
+restart: {
+
+    mood:
+        "morning",
+
+    title:
+        "",
+
+    blocks: [
+
+        `I woke up`,
+
+        `With the book in my hands
+And photographs scattered
+Across the floor.`
+
+    ],
+
+    next:
+        "home"
+}
+
+};
+
+
+/* =========================================================
+   STATE
+========================================================= */
+
+let currentScene =
+    "home";
+
+let currentBlock =
+    0;
+
+let interactionUsed =
+    false;
+
+
+/* =========================================================
+   MOOD
+========================================================= */
+
+function setMood(mood) {
+
+    const background =
+        document.getElementById(
+            "background"
+        );
+
+    background.className = "";
+
+    if (mood) {
+
+        background.classList.add(
+            mood
+        );
+    }
+}
+
+
+/* =========================================================
+   RENDER SCENE
+========================================================= */
+
+function renderScene(sceneName) {
+
+    currentScene =
+        sceneName;
+
+    currentBlock =
+        0;
+
+    interactionUsed =
+        false;
+
+
+    const scene =
+        scenes[sceneName];
+
+
+    setMood(
+        scene.mood
+    );
+
+
+    const story =
+        document.getElementById(
+            "story"
+        );
+
+
+    story.classList.add(
+        "fade-out"
+    );
+
+
+    setTimeout(() => {
+
+        story.innerHTML =
+            "";
+
+
+        if (scene.title) {
+
+            const title =
+                document.createElement(
+                    "h1"
+                );
+
+            title.className =
+                "scene-title";
+
+            title.textContent =
+                scene.title;
+
+            story.appendChild(
+                title
+            );
+        }
+
+
+        showBlock();
+
+
+        story.classList.remove(
+            "fade-out"
+        );
+
+    }, 700);
+}
+
+
+/* =========================================================
+   SHOW BLOCK
+========================================================= */
+
+function showBlock() {
+
+    const scene =
+        scenes[currentScene];
+
+
+    const story =
+        document.getElementById(
+            "story"
+        );
+
+
+    const oldPoem =
+        document.querySelector(
+            ".poem"
+        );
+
+
+    if (oldPoem) {
+
+        oldPoem.remove();
     }
 
-    if (button.dataset.choice !== undefined) {
-      const choice = SCENES[current].choices[Number(button.dataset.choice)];
 
-      if (choice.scene) {
-        transitionRender(() => openScene(choice.scene));
+    const poem =
+        document.createElement(
+            "div"
+        );
+
+
+    poem.className =
+        "poem";
+
+
+    const text =
+        scene.blocks[
+            currentBlock
+        ];
+
+
+    const lines =
+        text.split("\n");
+
+
+    lines.forEach(
+        (line, index) => {
+
+            const span =
+                document.createElement(
+                    "div"
+                );
+
+
+            span.className =
+                "poem-line";
+
+
+            span.textContent =
+                line === ""
+                    ? "\u00A0"
+                    : line;
+
+
+            span.style.animationDelay =
+                `${index * 0.12}s`;
+
+
+            poem.appendChild(
+                span
+            );
+        }
+    );
+
+
+    story.appendChild(
+        poem
+    );
+
+
+    const oldContinue =
+        document.getElementById(
+            "continue"
+        );
+
+
+    if (oldContinue) {
+
+        oldContinue.remove();
+    }
+
+
+    const oldInteraction =
+        document.querySelector(
+            ".interaction"
+        );
+
+
+    if (oldInteraction) {
+
+        oldInteraction.remove();
+    }
+
+
+    /* =========================
+       MORE TEXT
+    ========================= */
+
+    if (
+        currentBlock <
+        scene.blocks.length - 1
+    ) {
+
+        createContinueButton();
+
         return;
-      }
-
-      activeInteraction = choice;
-      blockIndex = 0;
-      applyMood(choice.mood || currentMoodKey());
-
-      if (soundOn && choice.sfx) playSFX(choice.sfx);
-
-      transitionRender(renderBlock);
-      return;
     }
 
-    return;
-  }
 
-  if (choiceMode) return;
+    /* =========================
+       INTERACTION
+    ========================= */
 
-  const blocks = activeInteraction?.blocks || SCENES[current].blocks;
+    if (scene.interaction) {
 
-  if (blockIndex < blocks.length - 1) {
-    transitionRender(() => {
-      blockIndex++;
-      renderBlock();
-    });
-  }
-});
+        showInteraction(
+            scene.interaction
+        );
+
+        return;
+    }
+
+
+    /* =========================
+       NEXT SCENE
+    ========================= */
+
+    createNextButton();
+}
+
+
+/* =========================================================
+   UNIVERSAL CONTINUE BUTTON
+========================================================= */
+
+function createContinueButton() {
+
+    const button =
+        document.createElement(
+            "button"
+        );
+
+
+    button.id =
+        "continue";
+
+
+    button.textContent =
+        "Press anywhere to continue";
+
+
+    button.onclick = () => {
+
+        /*
+            UNIVERSAL CLOCK SFX.
+
+            Every Continue button
+            uses the same sound.
+        */
+
+        playContinueSound();
+
+
+        currentBlock++;
+
+
+        showBlock();
+    };
+
+
+    document
+        .getElementById("story")
+        .appendChild(button);
+}
+
+
+/* =========================================================
+   NEXT SCENE BUTTON
+========================================================= */
+
+function createNextButton() {
+
+    const scene =
+        scenes[currentScene];
+
+
+    const button =
+        document.createElement(
+            "button"
+        );
+
+
+    button.id =
+        "continue";
+
+
+    button.textContent =
+        "Press anywhere to continue";
+
+
+    button.onclick = () => {
+
+        /*
+            SAME UNIVERSAL SOUND.
+        */
+
+        playContinueSound();
+
+
+        goTo(
+            scene.next
+        );
+    };
+
+
+    document
+        .getElementById("story")
+        .appendChild(button);
+}
+
+
+/* =========================================================
+   INTERACTIONS
+========================================================= */
+
+function showInteraction(type) {
+
+    const story =
+        document.getElementById(
+            "story"
+        );
+
+
+    const interaction =
+        document.createElement(
+            "div"
+        );
+
+
+    interaction.className =
+        "interaction";
+
+
+    /* =========================
+       SHOE
+    ========================= */
+
+    if (type === "shoe") {
+
+        const label =
+            document.createElement(
+                "div"
+            );
+
+        label.className =
+            "small-text";
+
+        label.textContent =
+            "Click the shoe.";
+
+
+        interaction.appendChild(
+            label
+        );
+
+
+        const shoe =
+            document.createElement(
+                "div"
+            );
+
+
+        shoe.className =
+            "shoe";
+
+
+        shoe.onclick = () => {
+
+            if (interactionUsed)
+                return;
+
+
+            interactionUsed =
+                true;
+
+
+            playWind();
+
+
+            interaction.innerHTML = `
+
+                <div class="interaction-result">
+
+                    I remember looking
+                    For the other one.
+
+                    <br><br>
+
+                    I never found it.
+
+                </div>
+
+            `;
+
+
+            setTimeout(() => {
+
+                createNextButton();
+
+            }, 1400);
+        };
+
+
+        interaction.appendChild(
+            shoe
+        );
+
+
+        story.appendChild(
+            interaction
+        );
+    }
+
+
+    /* =========================
+       VOICE
+    ========================= */
+
+    if (type === "voice") {
+
+        const button =
+            document.createElement(
+                "button"
+            );
+
+
+        button.textContent =
+            "Listen Again";
+
+
+        button.onclick = () => {
+
+            if (interactionUsed)
+                return;
+
+
+            interactionUsed =
+                true;
+
+
+            playStatic();
+
+
+            interaction.innerHTML = `
+
+                <div class="interaction-result">
+
+                    Static.
+
+                    <br><br>
+
+                    A faint voice.
+
+                    <br><br>
+
+                    Then silence.
+
+                </div>
+
+            `;
+
+
+            setTimeout(() => {
+
+                createNextButton();
+
+            }, 1400);
+        };
+
+
+        interaction.appendChild(
+            button
+        );
+
+
+        story.appendChild(
+            interaction
+        );
+    }
+
+
+    /* =========================
+       CLOCK
+    ========================= */
+
+    if (type === "clock") {
+
+        const button =
+            document.createElement(
+                "button"
+            );
+
+
+        button.textContent =
+            "Why 7:51?";
+
+
+        button.onclick = () => {
+
+            if (interactionUsed)
+                return;
+
+
+            interactionUsed =
+                true;
+
+
+            playClock();
+
+
+            interaction.innerHTML = `
+
+                <div class="interaction-result">
+
+                    7:51 was when I messaged you,
+                    asking why you were not answering
+                    Mom’s calls.
+
+                    <br><br>
+
+                    I called.
+
+                    <br><br>
+
+                    The phone was answered moments later.
+
+                    <br><br>
+
+                    That was when she knew the truth.
+
+                </div>
+
+            `;
+
+
+            setTimeout(() => {
+
+                createNextButton();
+
+            }, 2000);
+        };
+
+
+        interaction.appendChild(
+            button
+        );
+
+
+        story.appendChild(
+            interaction
+        );
+    }
+
+
+    /* =========================
+       FINAL
+    ========================= */
+
+    if (type === "final") {
+
+        const stopButton =
+            document.createElement(
+                "button"
+            );
+
+
+        stopButton.textContent =
+            "STOP";
+
+
+        stopButton.onclick = () => {
+
+            if (interactionUsed)
+                return;
+
+
+            interactionUsed =
+                true;
+
+
+            interaction.innerHTML = `
+
+                <div class="interaction-result">
+
+                    7:51
+
+                </div>
+
+            `;
+
+
+            setTimeout(() => {
+
+                const startButton =
+                    document.createElement(
+                        "button"
+                    );
+
+
+                startButton.textContent =
+                    "START";
+
+
+                startButton.onclick = () => {
+
+                    playClock();
+
+
+                    goTo(
+                        "restart"
+                    );
+                };
+
+
+                interaction.appendChild(
+                    startButton
+                );
+
+            }, 1200);
+        };
+
+
+        interaction.appendChild(
+            stopButton
+        );
+
+
+        story.appendChild(
+            interaction
+        );
+    }
+}
+
+
+/* =========================================================
+   CHANGE SCENE
+========================================================= */
+
+function goTo(sceneName) {
+
+    const fade =
+        document.getElementById(
+            "fade"
+        );
+
+
+    fade.classList.add(
+        "active"
+    );
+
+
+    setTimeout(() => {
+
+        renderScene(
+            sceneName
+        );
+
+
+        setTimeout(() => {
+
+            fade.classList.remove(
+                "active"
+            );
+
+        }, 100);
+
+    }, 800);
+}
+
+
+/* =========================================================
+   START
+========================================================= */
+
+renderScene(
+    "home"
+);
+
+</script>
+
+</body>
+</html>
