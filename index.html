@@ -378,6 +378,67 @@ body {
 
 
 /* =========================
+   BIG FINAL TITLE BUTTON
+========================= */
+
+.restart-title {
+
+    display: inline-block;
+
+    margin-top: 45px;
+
+    padding:
+        22px 38px;
+
+    border:
+        1px solid rgba(255,255,255,0.5);
+
+    border-radius: 30px;
+
+    background:
+        rgba(255,255,255,0.08);
+
+    color:
+        rgba(255,255,255,0.92);
+
+    font-family:
+        Georgia, "Times New Roman", serif;
+
+    font-size:
+        clamp(22px, 4vw, 34px);
+
+    letter-spacing:
+        4px;
+
+    text-transform:
+        uppercase;
+
+    cursor:
+        pointer;
+
+    transition:
+        background 0.3s ease,
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
+
+    box-shadow:
+        0 10px 30px rgba(0,0,0,0.18);
+}
+
+.restart-title:hover {
+
+    background:
+        rgba(255,255,255,0.16);
+
+    transform:
+        translateY(-3px);
+
+    box-shadow:
+        0 15px 35px rgba(0,0,0,0.28);
+}
+
+
+/* =========================
    SHOE
 ========================= */
 
@@ -646,17 +707,6 @@ function toggleSound() {
 /* =========================================================
    UNIVERSAL CONTINUE SOUND
 ========================================================= */
-
-/*
-    THIS IS THE IMPORTANT PART.
-
-    EVERY "PRESS ANYWHERE TO CONTINUE"
-    USES THIS SAME SOUND.
-
-    The sound is the clock tick.
-
-    It does NOT play automatically.
-*/
 
 function playContinueSound() {
 
@@ -953,19 +1003,19 @@ From the book in my hands.`,
         `There were five people
 In the photograph.`,
 
-        `I remember their names.`,
+        `I remember four names.`,
 
         `The fifth person
-was blurred,
+Was blurred,
 
 physically,
 
 yet sharply defined
-in the photograph
-and in our minds.`,
+In the photograph
+And in our minds.`,
 
         `As a cold breeze passed through,
-the chimes sang a quiet song.
+The chimes sang a quiet song.
 
 It felt nostalgic.`
 
@@ -1296,6 +1346,9 @@ Across the floor.`
 
     ],
 
+    interaction:
+        "restart",
+
     next:
         "home"
 }
@@ -1577,18 +1630,9 @@ function createContinueButton() {
 
     button.onclick = () => {
 
-        /*
-            UNIVERSAL CLOCK SFX.
-
-            Every Continue button
-            uses the same sound.
-        */
-
         playContinueSound();
 
-
         currentBlock++;
-
 
         showBlock();
     };
@@ -1626,12 +1670,7 @@ function createNextButton() {
 
     button.onclick = () => {
 
-        /*
-            SAME UNIVERSAL SOUND.
-        */
-
         playContinueSound();
-
 
         goTo(
             scene.next
@@ -1958,6 +1997,47 @@ function showInteraction(type) {
 
         interaction.appendChild(
             stopButton
+        );
+
+
+        story.appendChild(
+            interaction
+        );
+    }
+
+
+    /* =========================
+       RESTART
+    ========================= */
+
+    if (type === "restart") {
+
+        const restartButton =
+            document.createElement(
+                "button"
+            );
+
+
+        restartButton.className =
+            "restart-title";
+
+
+        restartButton.textContent =
+            "REMINISCE ONCE AGAIN";
+
+
+        restartButton.onclick = () => {
+
+            playContinueSound();
+
+            goTo(
+                "home"
+            );
+        };
+
+
+        interaction.appendChild(
+            restartButton
         );
 
 
